@@ -187,6 +187,19 @@ class Experiment(object):
         """
         return recruiters.from_config(get_config())
 
+    @property
+    def qualifications(self):
+        """All the qualifications we want to assign to a worker."""
+        experiment_qualification_desc = "Experiment-specific qualification"
+        group_qualification_desc = "Experiment group qualification"
+        config = get_config()
+        quals = {config.get("id"): experiment_qualification_desc}
+        qualification_names = config.get("group_name", "").split(",")
+        for name in qualification_names:
+            quals[name] = group_qualification_desc
+
+        return quals
+
     def is_overrecruited(self, waiting_count):
         """Returns True if the number of people waiting is in excess of the
         total number expected, indicating that this and subsequent users should
@@ -462,6 +475,25 @@ class Experiment(object):
 
         """
         return True
+
+    def participant_task_completed(self, participant):
+        """Called when an experiment task is finished, generally from the
+        /worker_complete route.
+
+        Assign the qualifications to the Participant, via the recruiter.
+        These will include one Qualification for the experiment
+        ID, and others for the configured group_name, if it's been set.
+
+        Overrecruited participants don't receive qualifications, since they
+        haven't actually completed the experiment. This allows them to remain
+        eligible for future runs. Blah blah blah.. just an example.
+        """
+        if participant.status == "overrecruited":
+            return
+
+        self.recruiter.assign_experiment_qualifications(
+            worker_id=participant.worker_id, qualifications=self.qualifications
+        )
 
     def submission_successful(self, participant):
         """Run when a participant submits successfully."""

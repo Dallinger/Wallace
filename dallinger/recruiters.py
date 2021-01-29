@@ -127,12 +127,6 @@ class Recruiter(object):
         """Throw an error."""
         raise NotImplementedError
 
-    def notify_completed(self, participant):
-        """Allow the Recruiter to be notified when a recruited Participant
-        has completed an experiment they joined.
-        """
-        pass
-
     def notify_duration_exceeded(self, participants, reference_time):
         """Some participants have been working beyond the defined duration of
         the experiment.
@@ -587,7 +581,7 @@ class MTurkRecruiter(Recruiter):
 
         self.mturkservice.check_credentials()
 
-        if self.config.get("assign_qualifications"):
+        if self.qualification_active:
             self._create_mturk_qualifications()
 
         hit_request = {
@@ -604,7 +598,7 @@ class MTurkRecruiter(Recruiter):
             "question": MTurkQuestions.external(self.ad_url),
             "notification_url": self.notification_url,
             "annotation": self.config.get("id"),
-            "qualifications": self._build_hit_qualifications(),
+            "qualifications": self._build_required_hit_qualifications(),
         }
         hit_info = self.mturkservice.create_hit(**hit_request)
         self._record_current_hit_id(hit_info["id"])
@@ -614,6 +608,20 @@ class MTurkRecruiter(Recruiter):
             "items": [url],
             "message": "HIT now published to Amazon Mechanical Turk",
         }
+
+    def assign_experiment_qualifications(self, worker_id, qualifications):
+        """Assigns MTurk Qualifications to a worker. Do nothing if qualification
+        assignment is globally disabled.
+        """
+        if not self.qualification_active:
+            logger.info("Qualification assignment is globally disabled; ignoring.")
+            return
+
+        for name in qualifications:
+            try:
+                self.mturkservice.increment_qualification_score(name, worker_id)
+            except QualificationNotFoundException as ex:
+                logger.exception(ex)
 
     def compensate_worker(self, worker_id, email, dollars, notify=True):
         """Pay a worker by means of a special HIT that only they can see."""
@@ -679,25 +687,6 @@ class MTurkRecruiter(Recruiter):
             )
         except MTurkServiceException as ex:
             logger.exception(str(ex))
-
-    def notify_completed(self, participant):
-        """Assign a Qualification to the Participant for the experiment ID,
-        and for the configured group_name, if it's been set.
-
-        Overrecruited participants don't receive qualifications, since they
-        haven't actually completed the experiment. This allows them to remain
-        eligible for future runs.
-        """
-        if participant.status == "overrecruited" or not self.qualification_active:
-            return
-
-        worker_id = participant.worker_id
-
-        for name in self.qualifications:
-            try:
-                self.mturkservice.increment_qualification_score(name, worker_id)
-            except QualificationNotFoundException as ex:
-                logger.exception(ex)
 
     def notify_duration_exceeded(self, participants, reference_time):
         """The participant has exceed the maximum time for the activity,
@@ -814,7 +803,9 @@ class MTurkRecruiter(Recruiter):
         experiment_id = self.config.get("id")
         return "{}:{}".format(self.__class__.__name__, experiment_id)
 
-    def _build_hit_qualifications(self):
+    def _build_required_hit_qualifications(self):
+        # The Qualications an MTurk worker must have, or in the case of the
+        # blocklist, not have, in order for them to see and accept the HIT.
         quals = []
         reqs = MTurkQualificationRequirements
         if self.config.get("approve_requirement") is not None:

@@ -1566,8 +1566,9 @@ def _worker_complete(participant_id):
     session.add(participant)
     session.commit()
 
-    # Notify recruiter for possible qualification assignment, etc.
-    participant.recruiter.notify_completed(participant)
+    # Notify experiment that participant has been marked complete
+    exp = Experiment(session)
+    exp.participant_task_completed(participant)
 
     event_type = participant.recruiter.submitted_event()
 
