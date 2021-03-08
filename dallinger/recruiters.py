@@ -613,10 +613,6 @@ class MTurkRecruiter(Recruiter):
         """Assigns MTurk Qualifications to a worker. Do nothing if qualification
         assignment is globally disabled.
         """
-        if not self.qualification_active:
-            logger.info("Qualification assignment is globally disabled; ignoring.")
-            return
-
         for name in qualifications:
             try:
                 self.mturkservice.increment_qualification_score(name, worker_id)

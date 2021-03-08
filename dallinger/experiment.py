@@ -189,16 +189,36 @@ class Experiment(object):
 
     @property
     def qualifications(self):
-        """All the qualifications we want to assign to a worker."""
+        """All the qualifications we want to assign to a worker.
+
+        By default, workers will always be assigned one qualification specific
+        to the experiment run. The property `group_qualifications` defines
+        additional qualifications to assign.
+        """
         experiment_qualification_desc = "Experiment-specific qualification"
-        group_qualification_desc = "Experiment group qualification"
         config = get_config()
         quals = {config.get("id"): experiment_qualification_desc}
-        qualification_names = config.get("group_name", "").split(",")
-        for name in qualification_names:
-            quals[name] = group_qualification_desc
+        quals.update(self.group_qualifications)
 
         return quals
+
+    @property
+    def group_qualifications(self):
+        """Qualifications that likely span more than one experiment run.
+
+        By default, the config.txt variable `group_name` is treated
+        as a comma-delimited list of additional qualifications to assign.
+        """
+        group_qualification_desc = "Experiment group qualification"
+        config = get_config()
+        qualification_names = config.get("group_name", "").split(",")
+
+        return {name: group_qualification_desc for name in qualification_names}
+
+    @property
+    def qualification_active(self):
+        config = get_config()
+        return bool(config.get("assign_qualifications"))
 
     def is_overrecruited(self, waiting_count):
         """Returns True if the number of people waiting is in excess of the
@@ -486,8 +506,12 @@ class Experiment(object):
 
         Overrecruited participants don't receive qualifications, since they
         haven't actually completed the experiment. This allows them to remain
-        eligible for future runs. Blah blah blah.. just an example.
+        eligible for future runs.
         """
+        if not self.qualification_active:
+            logger.info("Qualification assignment is globally disabled; ignoring.")
+            return
+
         if participant.status == "overrecruited":
             return
 
