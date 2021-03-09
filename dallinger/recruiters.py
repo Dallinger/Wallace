@@ -523,9 +523,6 @@ class MTurkRecruiter(Recruiter):
     nickname = "mturk"
     extra_routes = mturk_routes
 
-    experiment_qualification_desc = "Experiment-specific qualification"
-    group_qualification_desc = "Experiment group qualification"
-
     def __init__(self, *args, **kwargs):
         super(MTurkRecruiter, self).__init__()
         self.config = get_config()
@@ -571,15 +568,6 @@ class MTurkRecruiter(Recruiter):
             return "https://workersandbox.mturk.com/mturk/externalSubmit"
         return "https://www.mturk.com/mturk/externalSubmit"
 
-    @property
-    def qualifications(self):
-        quals = {self.config.get("id"): self.experiment_qualification_desc}
-        group_name = self.config.get("group_name", None)
-        if group_name:
-            quals[group_name] = self.group_qualification_desc
-
-        return quals
-
     def open_recruitment(self, n=1):
         """Open a connection to AWS MTurk and create a HIT."""
         logger.info("Opening MTurk recruitment for {} participants".format(n))
@@ -592,9 +580,6 @@ class MTurkRecruiter(Recruiter):
             raise MTurkRecruiterException("Can't run a HIT from localhost")
 
         self.mturkservice.check_credentials()
-
-        if self.qualification_active:
-            self._create_mturk_qualifications()
 
         hit_request = {
             "experiment_id": self.config.get("id"),
@@ -622,8 +607,13 @@ class MTurkRecruiter(Recruiter):
         }
 
     def assign_experiment_qualifications(self, worker_id, qualifications):
-        """Assigns MTurk Qualifications to a worker."""
-        for name in qualifications:
+        """Assigns MTurk Qualifications to a worker.
+
+        @param worker_id       string  the MTurk worker ID
+        @param qualifications  dict    `name` and `description` keys
+        """
+        self._create_mturk_qualifications(qualifications)
+        for name in qualifications.keys():
             try:
                 self.mturkservice.increment_qualification_score(name, worker_id)
             except QualificationNotFoundException as ex:
@@ -767,10 +757,6 @@ class MTurkRecruiter(Recruiter):
         """Does an MTurk HIT for the current experiment ID already exist?"""
         return self.current_hit_id() is not None
 
-    @property
-    def qualification_active(self):
-        return bool(self.config.get("assign_qualifications"))
-
     def current_hit_id(self):
         """Return the ID of the HIT associated with the active experiment ID
         if any such HIT exists.
@@ -878,16 +864,19 @@ class MTurkRecruiter(Recruiter):
             return []
         return [item.strip() for item in as_string.split(",") if item.strip()]
 
-    def _create_mturk_qualifications(self):
+    def _create_mturk_qualifications(self, qualifications):
         """Create MTurk Qualification for experiment ID, and for group_name
         if it's been set. Qualifications with these names already exist, but
         it's faster to try and fail than to check, then try.
         """
-        for name, desc in self.qualifications.items():
+        result = []
+        for name, desc in qualifications.items():
             try:
-                self.mturkservice.create_qualification_type(name, desc)
+                result.append(self.mturkservice.create_qualification_type(name, desc))
             except DuplicateQualificationNameError:
                 pass
+
+        return result
 
     def _resubmitted_msg(self, summary):
         templates = MTurkHITMessages.by_flavor(summary, self.config.get("whimsical"))

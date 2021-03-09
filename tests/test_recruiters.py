@@ -496,11 +496,11 @@ def mturkservice(active_config, fake_hit):
         is_sandbox=active_config.get("mode") != "live",
     )
 
+    def create_qual(name, description):
+        return {"id": "QualificationType id", "name": name, "description": description}
+
     mturk.check_credentials.return_value = True
-    mturk.create_qualification_type.return_value = {
-        "name": "QualificationType name",
-        "id": "QualificationType id",
-    }
+    mturk.create_qualification_type.side_effect = create_qual
     mturk.create_hit.return_value = fake_hit
     mturk.get_hits.return_value = iter([])
 
@@ -626,27 +626,6 @@ class TestMTurkRecruiter(object):
                 MTurkQualificationRequirements.min_approval(95),
                 MTurkQualificationRequirements.restrict_to_countries(["US"]),
             ],
-        )
-
-    def test_open_recruitment_creates_qualifications_for_experiment_app_id(
-        self, recruiter
-    ):
-        recruiter.open_recruitment(n=1)
-        recruiter.mturkservice.create_qualification_type.assert_called_once_with(
-            u"TEST_EXPERIMENT_UID", "Experiment-specific qualification"
-        )
-
-    def test_open_recruitment_creates_qualifications_for_exp_with_group_name(
-        self, recruiter
-    ):
-        recruiter.config.set("group_name", u"some group name")
-        recruiter.open_recruitment(n=1)
-        recruiter.mturkservice.create_qualification_type.assert_has_calls(
-            [
-                mock.call(u"TEST_EXPERIMENT_UID", "Experiment-specific qualification"),
-                mock.call(u"some group name", "Experiment group qualification"),
-            ],
-            any_order=True,
         )
 
     def test_open_recruitment_creates_no_qualifications_if_so_configured(
@@ -834,8 +813,12 @@ class TestMTurkRecruiter(object):
         assert result == {
             "hit": fake_hit,
             "qualification": {
-                "name": "QualificationType name",
+                "description": (
+                    "You have received a qualification to allow you to complete "
+                    "a compensation HIT from Dallinger for $10."
+                ),
                 "id": "QualificationType id",
+                "name": mock.ANY,
             },
             "email": {
                 "subject": "Dallinger Compensation HIT",
@@ -845,14 +828,21 @@ class TestMTurkRecruiter(object):
             },
         }
 
-    def test_assign_experiment_qualifications_assigns_exp_qualification(
+    def test_assign_experiment_qualifications_creates_and_assigns_exp_qualification(
         self, recruiter
     ):
-        recruiter.assign_experiment_qualifications("some worker id", ["one", "two"])
+        recruiter.assign_experiment_qualifications(
+            "some worker id", {"One": "Description of One", "Two": "Description of Two"}
+        )
+
+        assert recruiter.mturkservice.create_qualification_type.call_args_list == [
+            mock.call("One", "Description of One"),
+            mock.call("Two", "Description of Two"),
+        ]
 
         assert recruiter.mturkservice.increment_qualification_score.call_args_list == [
-            mock.call("one", "some worker id"),
-            mock.call("two", "some worker id"),
+            mock.call("One", "some worker id"),
+            mock.call("Two", "some worker id"),
         ]
 
     def test_assign_experiment_qualifications_catches_nonexistent_qualification(
@@ -864,7 +854,9 @@ class TestMTurkRecruiter(object):
         recruiter.mturkservice.increment_qualification_score.side_effect = error
 
         # logs, but does not raise:
-        recruiter.assign_experiment_qualifications("some worker id", ["one"])
+        recruiter.assign_experiment_qualifications(
+            "some worker id", {"One": "Description of One"}
+        )
 
     def test_rejects_questionnaire_from_returns_none_if_working(self, recruiter):
         participant = mock.Mock(spec=Participant, status="working")
