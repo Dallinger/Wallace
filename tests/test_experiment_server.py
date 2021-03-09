@@ -283,21 +283,20 @@ class TestWorkerComplete(object):
 
         assert models.Notification.query.all() == []
 
-    def test_notifies_recruiter_when_participant_completes(
-        self, a, webapp, active_config
-    ):
-        from dallinger.models import Participant
-
-        active_config.extend({"mode": u"sandbox"})
+    def test_notifies_recruiter_when_participant_completes(self, a, webapp):
+        participant = a.participant()
         with mock.patch(
-            "dallinger.recruiters.MTurkRecruiter.notify_completed"
-        ) as notify_completed:
+            "dallinger.experiment_server.experiment_server.Experiment"
+        ) as Experiment:
+
             webapp.post(
                 "/worker_complete",
-                data={"participant_id": a.participant(recruiter_id="mturk").id},
+                data={"participant_id": participant.id},
             )
-            args, _ = notify_completed.call_args
-            assert isinstance(args[0], Participant)
+
+        Experiment.return_value.participant_task_completed.assert_called_once_with(
+            participant
+        )
 
 
 @pytest.mark.usefixtures("experiment_dir")

@@ -522,7 +522,11 @@ class Experiment(object):
         )
 
     def submission_successful(self, participant):
-        """Run when a participant submits successfully."""
+        """Run when a participant's experiment submission passes data
+        and attendence checks.
+
+        :param participant: the ``Participant`` instance
+        """
         pass
 
     def recruit(self):

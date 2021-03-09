@@ -112,6 +112,8 @@ what to do with the database when the server receives requests from outside.
 
   .. automethod:: normalize_entry_information
 
+  .. automethod:: participant_task_completed
+
   .. automethod:: recruit
 
   .. automethod:: replay_event

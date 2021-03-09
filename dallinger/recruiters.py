@@ -113,6 +113,10 @@ class Recruiter(object):
         """Throw an error."""
         raise NotImplementedError
 
+    def assign_experiment_qualifications(self, worker_id, qualifications):
+        """Assigns recruiter-specific qualifications to a worker, if supported."""
+        pass
+
     def compensate_worker(self, *args, **kwargs):
         """A recruiter may provide a means to directly compensate a worker."""
         raise NotImplementedError
@@ -219,6 +223,14 @@ class CLIRecruiter(Recruiter):
         """Approve the HIT."""
         logger.info("Assignment {} has been marked for approval".format(assignment_id))
         return True
+
+    def assign_experiment_qualifications(self, worker_id, qualifications):
+        """Assigns recruiter-specific qualifications to a worker."""
+        logger.info(
+            "Assign worker ID {} qualifications {}".format(
+                worker_id, ", ".join(qualifications)
+            )
+        )
 
     def reward_bonus(self, assignment_id, amount, reason):
         """Print out bonus info for the assignment"""
@@ -610,9 +622,7 @@ class MTurkRecruiter(Recruiter):
         }
 
     def assign_experiment_qualifications(self, worker_id, qualifications):
-        """Assigns MTurk Qualifications to a worker. Do nothing if qualification
-        assignment is globally disabled.
-        """
+        """Assigns MTurk Qualifications to a worker."""
         for name in qualifications:
             try:
                 self.mturkservice.increment_qualification_score(name, worker_id)

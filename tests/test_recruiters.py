@@ -845,56 +845,26 @@ class TestMTurkRecruiter(object):
             },
         }
 
-    def test_notify_completed_assigns_exp_qualification(self, recruiter):
-        participant = mock.Mock(spec=Participant, worker_id="some worker id")
-        recruiter.notify_completed(participant)
+    def test_assign_experiment_qualifications_assigns_exp_qualification(
+        self, recruiter
+    ):
+        recruiter.assign_experiment_qualifications("some worker id", ["one", "two"])
 
-        recruiter.mturkservice.increment_qualification_score.assert_called_once_with(
-            "TEST_EXPERIMENT_UID", "some worker id"
-        )
+        assert recruiter.mturkservice.increment_qualification_score.call_args_list == [
+            mock.call("one", "some worker id"),
+            mock.call("two", "some worker id"),
+        ]
 
-    def test_notify_completed_adds_group_qualification_if_group(self, recruiter):
-        participant = mock.Mock(spec=Participant, worker_id="some worker id")
-        recruiter.config.set("group_name", u"some existing group_name")
-        recruiter.notify_completed(participant)
-
-        recruiter.mturkservice.increment_qualification_score.assert_has_calls(
-            [
-                mock.call("TEST_EXPERIMENT_UID", "some worker id"),
-                mock.call("some existing group_name", "some worker id"),
-            ],
-            any_order=True,
-        )
-
-    def test_notify_completed_catches_nonexistent_qualification(self, recruiter):
+    def test_assign_experiment_qualifications_catches_nonexistent_qualification(
+        self, recruiter
+    ):
         from dallinger.mturk import QualificationNotFoundException
 
-        participant = mock.Mock(spec=Participant, worker_id="some worker id")
         error = QualificationNotFoundException("Ouch!")
         recruiter.mturkservice.increment_qualification_score.side_effect = error
 
         # logs, but does not raise:
-        recruiter.notify_completed(participant)
-
-    def test_notify_completed_skips_assigning_qualification_if_so_configured(
-        self, recruiter
-    ):
-        participant = mock.Mock(spec=Participant, worker_id="some worker id")
-        recruiter.config.set("group_name", u"some existing group_name")
-        recruiter.config.set("assign_qualifications", False)
-        recruiter.notify_completed(participant)
-
-        recruiter.mturkservice.increment_qualification_score.assert_not_called()
-
-    def test_notify_completed_skips_assigning_qualification_if_overrecruited(
-        self, recruiter
-    ):
-        participant = mock.Mock(
-            spec=Participant, worker_id="some worker id", status="overrecruited"
-        )
-        recruiter.notify_completed(participant)
-
-        recruiter.mturkservice.increment_qualification_score.assert_not_called()
+        recruiter.assign_experiment_qualifications("some worker id", ["one"])
 
     def test_rejects_questionnaire_from_returns_none_if_working(self, recruiter):
         participant = mock.Mock(spec=Participant, status="working")
