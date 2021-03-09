@@ -153,7 +153,9 @@ class TestExperimentBaseClass(object):
 
         participant.recruiter.assign_experiment_qualifications.assert_not_called()
 
-    def test_notify_completed_skips_assigning_qualification_if_overrecruited(self, exp):
+    def test_participant_task_completed_skips_assigning_qualification_if_overrecruited(
+        self, exp
+    ):
         participant = mock.Mock(
             spec=Participant, worker_id="some worker id", status="overrecruited"
         )
