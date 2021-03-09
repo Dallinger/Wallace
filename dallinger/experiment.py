@@ -497,16 +497,18 @@ class Experiment(object):
         return True
 
     def participant_task_completed(self, participant):
-        """Called when an experiment task is finished, generally from the
-        /worker_complete route.
+        """Called when an experiment task is finished and submitted, and prior
+        to data and attendance checks.
 
-        Assign the qualifications to the Participant, via the recruiter.
+        Assigns the qualifications to the Participant, via their recruiter.
         These will include one Qualification for the experiment
         ID, and others for the configured group_name, if it's been set.
 
         Overrecruited participants don't receive qualifications, since they
         haven't actually completed the experiment. This allows them to remain
         eligible for future runs.
+
+        :param participant: the ``Participant`` instance
         """
         if not self.qualification_active:
             logger.info("Qualification assignment is globally disabled; ignoring.")
@@ -515,7 +517,7 @@ class Experiment(object):
         if participant.status == "overrecruited":
             return
 
-        self.recruiter.assign_experiment_qualifications(
+        participant.recruiter.assign_experiment_qualifications(
             worker_id=participant.worker_id, qualifications=self.qualifications
         )
 
