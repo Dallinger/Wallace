@@ -1556,17 +1556,19 @@ def worker_complete():
 
 
 def _worker_complete(participant_id):
-    participants = models.Participant.query.filter_by(id=participant_id).all()
-    if not participants:
+    participant = models.Participant.query.get(participant_id)
+    if not participant:
         raise KeyError()
 
-    participant = participants[0]
-
     participant.end_time = datetime.now()
-    session.add(participant)
     session.commit()
 
-    # Notify experiment that participant has been marked complete
+    # Notify experiment that participant has been marked complete. Doing
+    # this here, rather than in the async worker function, means that
+    # the experiment can request qualification assignment before the
+    # worker completes the HIT when using a recruiter like MTurk, where
+    # execution of the worker_events.AssignmentSubmitted command is
+    # deferred until they've submitted the HIT on the MTurk platform.
     exp = Experiment(session)
     exp.participant_task_completed(participant)
 
