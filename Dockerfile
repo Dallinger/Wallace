@@ -12,7 +12,7 @@ RUN apt-get update && \
     apt-get install -y libpq-dev python3-pip python3-dev enchant tzdata pandoc && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt constraints.txt constraints-deps.txt /dallinger/
+COPY constraints.txt  dev-requirements.txt  requirements.txt /dallinger/
 WORKDIR /dallinger
 
 RUN --mount=type=cache,target=/root/.cache/pip \
@@ -29,7 +29,7 @@ RUN apt-get update && \
     apt-get install -y libpq5 python3-pip enchant tzdata --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt constraints.txt constraints-deps.txt /dallinger/
+COPY constraints.txt  dev-requirements.txt  requirements.txt /dallinger/
 WORKDIR /dallinger
 
 RUN --mount=type=bind,source=/wheelhouse,from=wheels,target=/wheelhouse \

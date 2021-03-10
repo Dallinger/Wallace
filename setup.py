@@ -1,6 +1,5 @@
 """Install Dallinger as a command line utility."""
 
-from setup_utils import update_pins
 from setuptools import setup
 
 setup_args = dict(
@@ -36,6 +35,38 @@ setup_args = dict(
         "dallinger.experiments": [],
         "pytest11": ["pytest_dallinger = dallinger.pytest_dallinger"],
     },
+    install_requires=[
+        "APScheduler",
+        "cached-property",
+        "boto3",
+        "click",
+        "faker",
+        "Flask-Sockets",
+        "Flask",
+        "flask-crossdomain",
+        "flask-login",
+        "Flask-WTF",
+        "future",
+        "gevent",
+        "greenlet",
+        "gunicorn",
+        "localconfig",
+        "pexpect",
+        "psycopg2",
+        "psutil",
+        "redis",
+        "requests",
+        "rq",
+        "selenium",
+        "six",
+        "SQLAlchemy",
+        "sqlalchemy-postgres-copy",
+        "tabulate",
+        "timeago",
+        "tzlocal",
+        "ua-parser",
+        "user-agents",
+    ],
     extras_require={
         "jupyter": [
             "jupyter",
@@ -47,12 +78,14 @@ setup_args = dict(
         ],
         "dev": [
             "alabaster",
+            "black",
             "bumpversion",
             "coverage",
             "coverage_pth",
             "codecov",
             "flake8",
             "mock",
+            "pre-commit",
             "pycodestyle",
             "pypandoc",
             "pytest",
@@ -67,7 +100,5 @@ setup_args = dict(
         ':python_version <= "3.7"': ["importlib_metadata"],
     },
 )
-
-update_pins(setup_args)
 
 setup(**setup_args)

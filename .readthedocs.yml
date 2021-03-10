@@ -4,4 +4,4 @@ build:
 python:
   version: 3.6
 
-requirements_file: build-requirements.txt
+requirements_file: dev-requirements.txt
