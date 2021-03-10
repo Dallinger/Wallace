@@ -377,6 +377,12 @@ def ensure_constraints_file_presence(directory: str):
         os.system("pip-compile requirements.txt -o constraints.txt")
     finally:
         os.chdir(prev_cwd)
+    # Make the path the experiment requirements.txt file relative
+    constraints_contents = constraints_path.read_text()
+    constraints_contents_amended = re.sub(
+        "via -r .*requirements.txt", "via -r requirements.txt", constraints_contents
+    )
+    constraints_path.write_text(constraints_contents_amended)
 
 
 INITIAL_DELAY = 1
