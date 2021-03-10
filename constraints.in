@@ -1,0 +1,1 @@
+-e .[jupyter,data,dev,docker]
