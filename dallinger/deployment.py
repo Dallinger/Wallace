@@ -364,10 +364,15 @@ def ensure_constraints_file_presence(directory: str):
     Does nothing if a `constraints.txt` file exists there.
     Otherwise it creates the constraints.txt file based on the
     contents of the `requirements.txt` file.
+    If the `requirements.txt` does not exist one is created with
+    `dallinger` as its only dependency.
     """
     constraints_path = Path(directory) / "constraints.txt"
+    requirements_path = Path(directory) / "requirements.txt"
     if constraints_path.exists():
         return
+    if not requirements_path.exists():
+        requirements_path.write_text("dallinger\n")
     os.environ[
         "CUSTOM_COMPILE_COMMAND"
     ] = "rm constraints.txt\n#\n# and re-run dallinger in this experiment directory."

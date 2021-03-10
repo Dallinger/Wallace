@@ -102,8 +102,10 @@ def experiment_dir_merged(experiment_dir, active_config):
     with standard Dallinger files by the same process that occurs in production.
     """
     from dallinger.deployment import assemble_experiment_temp_dir
+    from dallinger.deployment import ensure_constraints_file_presence
 
     current_dir = os.getcwd()
+    ensure_constraints_file_presence(current_dir)
     destination = assemble_experiment_temp_dir(active_config)
     os.chdir(destination)
     yield

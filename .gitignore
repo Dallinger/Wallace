@@ -44,3 +44,5 @@ Gemfile.lock
 .ruby-version
 package-lock.json
 pip-selfcheck.json
+tests/experiment/constraints.txt
+tests/experiment/requirements.txt
