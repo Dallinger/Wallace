@@ -44,5 +44,8 @@ Gemfile.lock
 .ruby-version
 package-lock.json
 pip-selfcheck.json
-tests/experiment/constraints.txt
-tests/experiment/requirements.txt
+
+# Tests will generate these two files. They're not supposed to be committed
+# but files mentioned here are not copied over when preparing the experiment
+# tests/experiment/constraints.txt
+# tests/experiment/requirements.txt

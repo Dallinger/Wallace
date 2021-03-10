@@ -77,7 +77,7 @@ class ExperimentFileSource(object):
         """A Set of all files copyable in the source directory, accounting for
         exclusions.
         """
-        return {path for path in self._walk()}
+        return set(self._walk())
 
     @property
     def size(self):
