@@ -24,6 +24,7 @@ click==7.1.2
     # via
     #   dallinger
     #   flask
+    #   nltk
     #   rq
 dallinger==7.0.0
     # via -r requirements.txt
@@ -71,13 +72,15 @@ jmespath==0.10.0
     # via
     #   boto3
     #   botocore
+joblib==1.0.1
+    # via nltk
 localconfig==1.1.3
     # via dallinger
 markupsafe==1.1.1
     # via
     #   jinja2
     #   wtforms
-nltk==3.3
+nltk==3.5
     # via -r requirements.txt
 pexpect==4.8.0
     # via dallinger
@@ -101,6 +104,8 @@ redis==3.5.3
     # via
     #   dallinger
     #   rq
+regex==2020.11.13
+    # via nltk
 requests==2.25.1
     # via dallinger
 rq==1.7.0
@@ -113,7 +118,6 @@ six==1.15.0
     # via
     #   apscheduler
     #   dallinger
-    #   nltk
     #   python-dateutil
     #   sqlalchemy-postgres-copy
 sqlalchemy-postgres-copy==0.5.0
@@ -128,6 +132,8 @@ text-unidecode==1.3
     # via faker
 timeago==1.0.15
     # via dallinger
+tqdm==4.59.0
+    # via nltk
 tzlocal==2.1
     # via
     #   apscheduler
