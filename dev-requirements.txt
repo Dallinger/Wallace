@@ -57,6 +57,8 @@ coverage==5.5
     #   codecov
     #   coverage-pth
     #   dallinger
+defusedxml==0.7.1
+    # via odfpy
 distlib==0.3.1
     # via virtualenv
 docutils==0.16
@@ -64,6 +66,8 @@ docutils==0.16
     #   recommonmark
     #   sphinx
     #   sphinx-js
+et-xmlfile==1.0.1
+    # via openpyxl
 faker==6.6.0
     # via dallinger
 filelock==3.0.12
@@ -125,6 +129,8 @@ jmespath==0.10.0
     #   botocore
 localconfig==1.1.3
     # via dallinger
+markuppy==1.14
+    # via tablib
 markupsafe==1.1.1
     # via
     #   jinja2
@@ -137,11 +143,21 @@ mypy-extensions==0.4.3
     # via black
 nodeenv==1.5.0
     # via pre-commit
+numpy==1.20.1
+    # via pandas
+odfpy==1.4.1
+    # via tablib
+openpyxl==3.0.7
+    # via tablib
 packaging==20.9
     # via
     #   pytest
     #   sphinx
     #   tox
+pandas==1.2.3
+    # via
+    #   dallinger
+    #   tablib
 parsimonious==0.7.0
     # via sphinx-js
 pathspec==0.8.1
@@ -186,13 +202,17 @@ python-dateutil==2.8.1
     # via
     #   botocore
     #   faker
+    #   pandas
 pytz==2021.1
     # via
     #   apscheduler
     #   babel
+    #   pandas
     #   tzlocal
 pyyaml==5.4.1
-    # via pre-commit
+    # via
+    #   pre-commit
+    #   tablib
 recommonmark==0.7.1
     # via dallinger
 redis==3.5.3
@@ -254,8 +274,12 @@ sqlalchemy==1.3.23
     # via
     #   dallinger
     #   sqlalchemy-postgres-copy
-tabulate==0.8.9
+tablib[all]==3.0.0
     # via dallinger
+tabulate==0.8.9
+    # via
+    #   dallinger
+    #   tablib
 text-unidecode==1.3
     # via faker
 timeago==1.0.15
@@ -297,6 +321,10 @@ wheel==0.36.2
     # via pypandoc
 wtforms==2.3.3
     # via flask-wtf
+xlrd==2.0.1
+    # via tablib
+xlwt==1.3.0
+    # via tablib
 zope.event==4.5.0
     # via gevent
 zope.interface==5.2.0
