@@ -85,6 +85,7 @@ setup_args = dict(
             "codecov",
             "flake8",
             "mock",
+            "pip-tools",
             "pre-commit",
             "pycodestyle",
             "pypandoc",

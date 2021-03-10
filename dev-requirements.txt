@@ -45,6 +45,7 @@ click==7.1.2
     #   black
     #   dallinger
     #   flask
+    #   pip-tools
     #   rq
 codecov==2.1.11
     # via dallinger
@@ -163,6 +164,8 @@ parsimonious==0.7.0
 pathspec==0.8.1
     # via black
 pexpect==4.8.0
+    # via dallinger
+pip-tools==5.5.0
     # via dallinger
 pluggy==0.13.1
     # via

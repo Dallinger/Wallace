@@ -6,12 +6,14 @@ import os
 import pexpect
 import pytest
 import re
+import shutil
 import six
 import sys
 import tempfile
 import uuid
 from pytest import raises
 from six.moves import configparser
+from pathlib import Path
 
 from dallinger.config import get_config
 from dallinger import recruiters
@@ -990,3 +992,23 @@ class TestLoad(object):
                 mock.call("Local Heroku process terminated."),
             ]
         )
+
+
+class TestConstraints(object):
+    @pytest.mark.slow
+    def test_constraints_generation(self):
+        from dallinger.deployment import ensure_constraints_file_presence
+
+        tmp_path = tempfile.mkdtemp()
+        (Path(tmp_path) / "requirements.txt").write_text("black")
+        ensure_constraints_file_presence(tmp_path)
+        constraints_file = Path(tmp_path) / "constraints.txt"
+        # If not present a `constraints.txt` file will be generated
+        assert constraints_file.exists()
+        assert "toml" in constraints_file.read_text()
+
+        # An existing file will be left untouched
+        constraints_file.write_text("foobar")
+        ensure_constraints_file_presence(tmp_path)
+        assert constraints_file.read_text() == "foobar"
+        shutil.rmtree(tmp_path)

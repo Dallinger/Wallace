@@ -65,6 +65,7 @@ click==7.1.2
     #   black
     #   dallinger
     #   flask
+    #   pip-tools
     #   rq
 codecov==2.1.11
     # via dallinger
@@ -287,6 +288,8 @@ pexpect==4.8.0
     #   ipython
 pickleshare==0.7.5
     # via ipython
+pip-tools==5.5.0
+    # via dallinger
 pluggy==0.13.1
     # via
     #   pytest

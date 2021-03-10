@@ -13,6 +13,7 @@ import tempfile
 import threading
 import time
 
+from pathlib import Path
 from six.moves import shlex_quote as quote
 from six.moves.urllib.parse import urlparse
 from six.moves.urllib.parse import urlunparse
@@ -194,6 +195,9 @@ def assemble_experiment_temp_dir(config):
     - Templates and static resources from Dallinger
     - An export of the loaded configuration
     - Heroku-specific files (Procile, runtime.txt) from Dallinger
+    - A requirements.txt file with the contents from the constraints.txt file
+      in the experiment (Dallinger should have generated one with pip-compile
+      if needed by the time we reach this code)
 
     Assumes the experiment root directory is the current working directory.
 
@@ -278,6 +282,9 @@ def assemble_experiment_temp_dir(config):
 
     ExplicitFileSource(os.getcwd()).selective_copy_to(dst)
 
+    # Overwrite the requirements.txt file with the contents of the constraints.txt file
+    (Path(dst) / "constraints.txt").replace((Path(dst) / "requirements.txt"))
+
     return dst
 
 
@@ -306,7 +313,7 @@ def setup_experiment(
         except (OSError, IOError):
             dependencies = []
         pkg_resources.require(dependencies)
-
+    ensure_constraints_file_presence(os.getcwd())
     # Generate a unique id for this experiment.
     from dallinger.experiment import Experiment
 
@@ -350,6 +357,26 @@ def setup_experiment(
         )
 
     return (heroku_app_id, temp_dir)
+
+
+def ensure_constraints_file_presence(directory: str):
+    """Looks into the path represented by the string `directory`.
+    Does nothing if a `constraints.txt` file exists there.
+    Otherwise it creates the constraints.txt file based on the
+    contents of the `requirements.txt` file.
+    """
+    constraints_path = Path(directory) / "constraints.txt"
+    if constraints_path.exists():
+        return
+    os.environ[
+        "CUSTOM_COMPILE_COMMAND"
+    ] = "rm constraints.txt\n#\n# and re-run dallinger in this experiment directory."
+    prev_cwd = os.getcwd()
+    try:
+        os.chdir(directory)
+        os.system("pip-compile requirements.txt -o constraints.txt")
+    finally:
+        os.chdir(prev_cwd)
 
 
 INITIAL_DELAY = 1
