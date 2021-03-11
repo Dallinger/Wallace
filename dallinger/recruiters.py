@@ -227,8 +227,8 @@ class CLIRecruiter(Recruiter):
     def assign_experiment_qualifications(self, worker_id, qualifications):
         """Assigns recruiter-specific qualifications to a worker."""
         logger.info(
-            "Assign worker ID {} qualifications {}".format(
-                worker_id, ", ".join(qualifications)
+            "Worker ID {} earned these qualifications: {}".format(
+                worker_id, qualifications
             )
         )
 

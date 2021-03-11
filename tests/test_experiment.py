@@ -122,10 +122,9 @@ class TestExperimentBaseClass(object):
             exp.normalize_entry_information({"foo": "bar"})
             normalizer.assert_called_once_with({"foo": "bar"})
 
-    def test_participant_task_completed_adds_group_qualification_if_group(
-        self, active_config, exp
+    def test_participant_task_completed_grants_qualification_for_experiment_id(
+        self, exp
     ):
-        active_config.set("group_name", "some group name")
         participant = mock.Mock(spec=Participant, worker_id="some worker id")
 
         exp.participant_task_completed(participant)
@@ -137,7 +136,28 @@ class TestExperimentBaseClass(object):
                     worker_id="some worker id",
                     qualifications={
                         "TEST_EXPERIMENT_UID": "Experiment-specific qualification",
-                        "some group name": "Experiment group qualification",
+                    },
+                )
+            ]
+        )
+
+    def test_participant_task_completed_adds_group_qualification_if_group(
+        self, active_config, exp
+    ):
+        active_config.set("group_name", " some-group-1, some-group-2  ")
+        participant = mock.Mock(spec=Participant, worker_id="some worker id")
+
+        exp.participant_task_completed(participant)
+
+        assert (
+            participant.recruiter.assign_experiment_qualifications.call_args_list
+            == [
+                mock.call(
+                    worker_id="some worker id",
+                    qualifications={
+                        "TEST_EXPERIMENT_UID": "Experiment-specific qualification",
+                        "some-group-1": "Experiment group qualification",
+                        "some-group-2": "Experiment group qualification",
                     },
                 )
             ]

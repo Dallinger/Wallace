@@ -211,7 +211,9 @@ class Experiment(object):
         """
         group_qualification_desc = "Experiment group qualification"
         config = get_config()
-        qualification_names = config.get("group_name", "").split(",")
+        qualification_names = [
+            n.strip() for n in config.get("group_name", "").split(",") if n.strip()
+        ]
 
         return {name: group_qualification_desc for name in qualification_names}
 
