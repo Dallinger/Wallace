@@ -195,7 +195,8 @@ class Experiment(object):
         to the experiment run. The property `group_qualifications` defines
         additional qualifications to assign.
 
-        :return dict  of name -> description pairs
+        Type should be a dictionary of name -> description pairs, or
+        an empty dictionary.
         """
         experiment_qualification_desc = "Experiment-specific qualification"
         config = get_config()
@@ -212,7 +213,8 @@ class Experiment(object):
         as a comma-delimited list of additional qualifications to assign,
         but this property can be overridden to provide different behavior.
 
-        :return dict  of name -> description pairs
+        Type should be a dictionary of name -> description pairs, or
+        an empty dictionary.
         """
         group_qualification_desc = "Experiment group qualification"
         config = get_config()
