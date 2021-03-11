@@ -841,19 +841,11 @@ class TestMTurkRecruiter(object):
         ]
         assert recruiter.mturkservice.increment_qualification_score.call_args_list == [
             mock.call(
-                {
-                    "id": "QualificationType id",
-                    "name": "One",
-                    "description": "Description of One",
-                },
+                "QualificationType id",
                 "some worker id",
             ),
             mock.call(
-                {
-                    "id": "QualificationType id",
-                    "name": "Two",
-                    "description": "Description of Two",
-                },
+                "QualificationType id",
                 "some worker id",
             ),
         ]

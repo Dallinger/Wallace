@@ -870,7 +870,7 @@ class MTurkRecruiter(Recruiter):
         for name, desc in qualifications.items():
             try:
                 result["new_qualification_ids"].append(
-                    self.mturkservice.create_qualification_type(name, desc)
+                    self.mturkservice.create_qualification_type(name, desc)["id"]
                 )
             except DuplicateQualificationNameError:
                 result["existing_qualification_names"].append(name)
