@@ -204,7 +204,7 @@ class TestDebugCommand(object):
     def test_fails_if_run_outside_experiment_dir(self, debug, deployment):
         exp_dir = os.getcwd()
         try:
-            os.chdir("..")
+            os.chdir("../..")
             result = CliRunner().invoke(debug, [])
         finally:
             os.chdir(exp_dir)
