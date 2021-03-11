@@ -828,7 +828,7 @@ class TestMTurkRecruiter(object):
             },
         }
 
-    def test_assign_experiment_qualifications_creates_and_assigns_exp_qualification(
+    def test_assign_experiment_qualifications_creates_nonexistent_qualifications(
         self, recruiter
     ):
         recruiter.assign_experiment_qualifications(
@@ -839,23 +839,41 @@ class TestMTurkRecruiter(object):
             mock.call("One", "Description of One"),
             mock.call("Two", "Description of Two"),
         ]
-
         assert recruiter.mturkservice.increment_qualification_score.call_args_list == [
-            mock.call("One", "some worker id"),
-            mock.call("Two", "some worker id"),
+            mock.call(
+                {
+                    "id": "QualificationType id",
+                    "name": "One",
+                    "description": "Description of One",
+                },
+                "some worker id",
+            ),
+            mock.call(
+                {
+                    "id": "QualificationType id",
+                    "name": "Two",
+                    "description": "Description of Two",
+                },
+                "some worker id",
+            ),
         ]
 
-    def test_assign_experiment_qualifications_catches_nonexistent_qualification(
+    def test_assign_experiment_qualifications_assigns_existing_qualifications(
         self, recruiter
     ):
-        from dallinger.mturk import QualificationNotFoundException
+        from dallinger.mturk import DuplicateQualificationNameError
 
-        error = QualificationNotFoundException("Ouch!")
-        recruiter.mturkservice.increment_qualification_score.side_effect = error
+        recruiter.mturkservice.create_qualification_type.side_effect = (
+            DuplicateQualificationNameError
+        )
 
-        # logs, but does not raise:
         recruiter.assign_experiment_qualifications(
-            "some worker id", {"One": "Description of One"}
+            "some worker id", {"One": "Description of One", "Two": "Description of Two"}
+        )
+
+        assert (
+            recruiter.mturkservice.increment_named_qualification_score.call_args_list
+            == [mock.call("One", "some worker id"), mock.call("Two", "some worker id")]
         )
 
     def test_rejects_questionnaire_from_returns_none_if_working(self, recruiter):

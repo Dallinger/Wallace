@@ -27,7 +27,6 @@ from dallinger.mturk import MTurkQuestions
 from dallinger.mturk import MTurkService
 from dallinger.mturk import DuplicateQualificationNameError
 from dallinger.mturk import MTurkServiceException
-from dallinger.mturk import QualificationNotFoundException
 from dallinger.utils import get_base_url
 from dallinger.utils import generate_random_id
 from dallinger.utils import ParticipationTime
@@ -612,12 +611,11 @@ class MTurkRecruiter(Recruiter):
         @param worker_id       string  the MTurk worker ID
         @param qualifications  dict    `name` and `description` keys
         """
-        self._create_mturk_qualifications(qualifications)
-        for name in qualifications.keys():
-            try:
-                self.mturkservice.increment_qualification_score(name, worker_id)
-            except QualificationNotFoundException as ex:
-                logger.exception(ex)
+        result = self._ensure_mturk_qualifications(qualifications)
+        for qualification_id in result["new_qualification_ids"]:
+            self.mturkservice.increment_qualification_score(qualification_id, worker_id)
+        for name in result["existing_qualification_names"]:
+            self.mturkservice.increment_named_qualification_score(name, worker_id)
 
     def compensate_worker(self, worker_id, email, dollars, notify=True):
         """Pay a worker by means of a special HIT that only they can see."""
@@ -864,17 +862,18 @@ class MTurkRecruiter(Recruiter):
             return []
         return [item.strip() for item in as_string.split(",") if item.strip()]
 
-    def _create_mturk_qualifications(self, qualifications):
-        """Create MTurk Qualification for experiment ID, and for group_name
-        if it's been set. Qualifications with these names already exist, but
-        it's faster to try and fail than to check, then try.
+    def _ensure_mturk_qualifications(self, qualifications):
+        """Create MTurk Qualifications for names that don't already exist,
+        but also return names that already do.
         """
-        result = []
+        result = {"new_qualification_ids": [], "existing_qualification_names": []}
         for name, desc in qualifications.items():
             try:
-                result.append(self.mturkservice.create_qualification_type(name, desc))
+                result["new_qualification_ids"].append(
+                    self.mturkservice.create_qualification_type(name, desc)
+                )
             except DuplicateQualificationNameError:
-                pass
+                result["existing_qualification_names"].append(name)
 
         return result
 
