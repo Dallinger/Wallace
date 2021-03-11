@@ -30,6 +30,15 @@ what to do with the database when the server receives requests from outside.
   .. autoattribute:: recruiter
     :annotation:
 
+  .. autoattribute:: qualifications
+    :annotation:
+
+  .. autoattribute:: group_qualifications
+    :annotation:
+
+  .. autoattribute:: qualification_active
+    :annotation:
+
   .. autoattribute:: initial_recruitment_size
     :annotation:
 

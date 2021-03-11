@@ -194,6 +194,8 @@ class Experiment(object):
         By default, workers will always be assigned one qualification specific
         to the experiment run. The property `group_qualifications` defines
         additional qualifications to assign.
+
+        :return dict  of name -> description pairs
         """
         experiment_qualification_desc = "Experiment-specific qualification"
         config = get_config()
@@ -207,7 +209,10 @@ class Experiment(object):
         """Qualifications that likely span more than one experiment run.
 
         By default, the config.txt variable `group_name` is treated
-        as a comma-delimited list of additional qualifications to assign.
+        as a comma-delimited list of additional qualifications to assign,
+        but this property can be overridden to provide different behavior.
+
+        :return dict  of name -> description pairs
         """
         group_qualification_desc = "Experiment group qualification"
         config = get_config()
@@ -219,6 +224,10 @@ class Experiment(object):
 
     @property
     def qualification_active(self):
+        """A boolean controlling whether any worker qualifications will be
+        assigned. By default this uses the `assign_qualifications` value from
+        config.txt.
+        """
         config = get_config()
         return bool(config.get("assign_qualifications"))
 

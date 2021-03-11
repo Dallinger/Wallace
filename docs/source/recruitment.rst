@@ -58,7 +58,7 @@ parameterized space of games for the study of human social behavior::
     duration = 0.1
     us_only = true
     approve_requirement = 95
-    group_name = Griduniverse
+    group_name = Griduniverse,Survival
 
 The ``title``, ``description``, and ``keywords`` are important, because this
 is what a potential participant will see when deciding whether to
@@ -73,7 +73,7 @@ complete experiment might benefit from a higher payment figure.
 An experiment with many participants that are recruited sequentially or
 are not required to interact with each other, might benefit from a larger
 window.
- 
+
 Once a participant is looking at your experiment sign on page, the
 ``duration`` parameter controls how long it will wait for participation
 confirmation before timing out. This prevents undecided or forgetful users
@@ -94,12 +94,18 @@ experimenter. The ``approve_requirement`` parameter takes a number from 1 to
 100, representing the percentage of approved experiments that a participant
 must have to be able to participate in the experiment.
 
-The ``group_name`` parameter is used to assign a named qualification to
+The ``group_name`` parameter is used to assign named qualifications to
 participants that complete an experiment. You can use this later to find out
-if a possible participant has already completed the experiment under the
-same group name. Note that it's not enough to set this parameter to have the
-qualification saved. It's necessary to also set the ``assign_qualifications``
-parameter to ``true`` as well.
+if a possible participant has already completed the experiment under the same
+group name. This can be a single value, or a comma-separated list of values
+can be provided, and a qualification will be assigned for each. Note that it's
+not enough to set this parameter to have the qualification saved. It's
+necessary to also set the ``assign_qualifications`` parameter to ``true`` as
+well. As an alternative to (or in combination with) using these configuration
+values, you can also override properties in your experiment class. See
+especially the ``group_qualifications`` property, which is responsible for
+providing name->value qualification definitions in the form of a python
+dictionary.
 
 Finally, the ``qualification_blacklist`` parameter can be used to filter out
 potential participants and prevent them from even viewing the experiment
