@@ -355,11 +355,26 @@ class MTurkService(object):
             )
         )
 
-    def increment_qualification_score(self, name, worker_id, notify=False):
+    def increment_qualification_score(self, qualification_id, worker_id, notify=False):
+        """Increment the current qualification score for a worker, on a
+        qualification with the provided ID.
+        """
+        try:
+            current_score = self.current_qualification_score(
+                qualification_id, worker_id
+            )
+        except (WorkerLacksQualification, RevokedQualification):
+            current_score = 0
+        new_score = current_score + 1
+        self.assign_qualification(qualification_id, worker_id, new_score, notify)
+
+        return {"qtype": qualification_id, "score": new_score}
+
+    def increment_named_qualification_score(self, name, worker_id, notify=False):
         """Increment the current qualification score for a worker, on a
         qualification with the provided name.
         """
-        result = self.get_current_qualification_score(name, worker_id)
+        result = self.current_named_qualification_score(name, worker_id)
         current_score = result["score"] or 0
         new_score = current_score + 1
         qtype_id = result["qtype"]["id"]
@@ -374,7 +389,7 @@ class MTurkService(object):
             )
         )
 
-    def get_qualification_score(self, qualification_id, worker_id):
+    def current_qualification_score(self, qualification_id, worker_id):
         """Return a worker's qualification score as an iteger."""
         try:
             response = self.mturk.get_qualification_score(
@@ -398,7 +413,7 @@ class MTurkService(object):
             raise MTurkServiceException(error)
         return response["Qualification"]["IntegerValue"]
 
-    def get_current_qualification_score(self, name, worker_id):
+    def current_named_qualification_score(self, name, worker_id):
         """Return the current score for a worker, on a qualification with the
         provided name.
         """
@@ -408,7 +423,7 @@ class MTurkService(object):
                 'No Qualification exists with name "{}"'.format(name)
             )
         try:
-            score = self.get_qualification_score(qtype["id"], worker_id)
+            score = self.current_qualification_score(qtype["id"], worker_id)
         except (WorkerLacksQualification, RevokedQualification):
             score = None
 

@@ -413,7 +413,9 @@ class TestMTurkServiceIntegrationSmokeTest(object):
 
         assert worker_id in [w["id"] for w in workers]
 
-        result = with_cleanup.increment_qualification_score(qtype["name"], worker_id)
+        result = with_cleanup.increment_named_qualification_score(
+            qtype["name"], worker_id
+        )
 
         assert result["score"] == 3
 
@@ -636,17 +638,17 @@ class TestMTurkService(object):
 class TestMTurkServiceWithRequesterAndWorker(object):
     def test_can_assign_new_qualification(self, with_cleanup, worker_id, qtype):
         assert with_cleanup.assign_qualification(qtype["id"], worker_id, score=2)
-        assert with_cleanup.get_qualification_score(qtype["id"], worker_id) == 2
+        assert with_cleanup.current_qualification_score(qtype["id"], worker_id) == 2
 
     def test_can_update_existing_qualification(self, with_cleanup, worker_id, qtype):
         with_cleanup.assign_qualification(qtype["id"], worker_id, score=2)
         with_cleanup.assign_qualification(qtype["id"], worker_id, score=3)
 
-        assert with_cleanup.get_qualification_score(qtype["id"], worker_id) == 3
+        assert with_cleanup.current_qualification_score(qtype["id"], worker_id) == 3
 
     def test_getting_invalid_qualification_score_raises(self, with_cleanup, worker_id):
         with pytest.raises(MTurkServiceException) as execinfo:
-            with_cleanup.get_qualification_score("NONEXISTENT", worker_id)
+            with_cleanup.current_qualification_score("NONEXISTENT", worker_id)
         assert execinfo.match(
             "Worker {} does not have qualification NONEXISTENT".format(worker_id)
         )
@@ -658,7 +660,7 @@ class TestMTurkServiceWithRequesterAndWorker(object):
         with_cleanup.revoke_qualification(qtype["id"], worker_id)
 
         with pytest.raises(MTurkServiceException):
-            with_cleanup.get_qualification_score(qtype["id"], worker_id)
+            with_cleanup.current_qualification_score(qtype["id"], worker_id)
 
     def test_get_workers_with_qualification(self, with_cleanup, worker_id, qtype):
         with_cleanup.assign_qualification(qtype["id"], worker_id, score=2)
@@ -666,71 +668,83 @@ class TestMTurkServiceWithRequesterAndWorker(object):
 
         assert worker_id in [w["id"] for w in workers]
 
-    def test_get_current_qualification_score(self, with_cleanup, worker_id, qtype):
+    def test_current_named_qualification_score(self, with_cleanup, worker_id, qtype):
         with_cleanup.assign_qualification(qtype["id"], worker_id, score=2)
 
-        result = with_cleanup.get_current_qualification_score(qtype["name"], worker_id)
+        result = with_cleanup.current_named_qualification_score(
+            qtype["name"], worker_id
+        )
 
         assert result["qtype"]["id"] == qtype["id"]
         assert result["score"] == 2
 
-    def test_get_current_qualification_score_worker_unscored(
+    def test_current_named_qualification_score_worker_unscored(
         self, with_cleanup, worker_id, qtype
     ):
-        result = with_cleanup.get_current_qualification_score(qtype["name"], worker_id)
+        result = with_cleanup.current_named_qualification_score(
+            qtype["name"], worker_id
+        )
 
         assert result["qtype"]["id"] == qtype["id"]
         assert result["score"] is None
 
-    def test_get_current_qualification_score_invalid_worker_raises(
+    def test_current_named_qualification_score_invalid_worker_raises(
         self, with_cleanup, qtype
     ):
         with pytest.raises(MTurkServiceException):
-            with_cleanup.get_current_qualification_score(qtype["name"], "nonsense")
+            with_cleanup.current_named_qualification_score(qtype["name"], "nonsense")
 
-    def test_get_current_qualification_score_is_none_for_revoked_qualifications(
+    def test_current_named_qualification_score_is_none_for_revoked_qualifications(
         self, with_cleanup, worker_id, qtype
     ):
         with_cleanup.assign_qualification(qtype["id"], worker_id, score=2)
         with_cleanup.revoke_qualification(qtype["id"], worker_id)
 
-        result = with_cleanup.get_current_qualification_score(qtype["name"], worker_id)
+        result = with_cleanup.current_named_qualification_score(
+            qtype["name"], worker_id
+        )
 
         assert result["qtype"]["id"] == qtype["id"]
         assert result["score"] is None
 
-    def test_increment_qualification_score(self, with_cleanup, worker_id, qtype):
+    def test_increment_named_qualification_score(self, with_cleanup, worker_id, qtype):
         with_cleanup.assign_qualification(qtype["id"], worker_id, score=2)
-        result = with_cleanup.increment_qualification_score(qtype["name"], worker_id)
+        result = with_cleanup.increment_named_qualification_score(
+            qtype["name"], worker_id
+        )
 
         assert result["qtype"]["id"] == qtype["id"]
         assert result["score"] == 3
 
-    def test_increment_qualification_score_worker_unscored(
+    def test_increment_named_qualification_score_worker_unscored(
         self, with_cleanup, worker_id, qtype
     ):
-        result = with_cleanup.increment_qualification_score(qtype["name"], worker_id)
+        result = with_cleanup.increment_named_qualification_score(
+            qtype["name"], worker_id
+        )
 
         assert result["qtype"]["id"] == qtype["id"]
         assert result["score"] == 1
 
-    def test_increment_qualification_score_for_revoked_qualification(
+    def test_increment_named_qualification_score_for_revoked_qualification(
         self, with_cleanup, worker_id, qtype
     ):
         with_cleanup.assign_qualification(qtype["id"], worker_id, score=2)
         with_cleanup.revoke_qualification(qtype["id"], worker_id)
-        result = with_cleanup.increment_qualification_score(qtype["name"], worker_id)
+        result = with_cleanup.increment_named_qualification_score(
+            qtype["name"], worker_id
+        )
 
         assert result["qtype"]["id"] == qtype["id"]
         assert result["score"] == 1
 
-    def test_increment_qualification_score_nonexistent_qual(
+    def test_increment_named_qualification_score_nonexistent_qual(
         self, with_cleanup, worker_id
     ):
         # we know the name doesn't exist, so no need to wait
         with_cleanup.max_wait_secs = 0
         with pytest.raises(QualificationNotFoundException):
-            with_cleanup.increment_qualification_score("NONEXISTENT", worker_id)
+            with_cleanup.increment_named_qualification_score("NONEXISTENT", worker_id)
 
 
 @pytest.mark.mturk
@@ -1208,78 +1222,80 @@ class TestMTurkServiceWithFakeConnection(object):
         calls = with_mock.mturk.list_workers_with_qualification_type.call_args_list
         assert calls == expected
 
-    def test_get_qualification_score_is_passthrough(self, with_mock):
+    def test_current_qualification_score_is_passthrough(self, with_mock):
         fake_response = fake_worker_qualification_response()
         with_mock.mturk.get_qualification_score = mock.Mock(return_value=fake_response)
 
-        score = with_mock.get_qualification_score("some qtype id", "some worker id")
+        score = with_mock.current_qualification_score("some qtype id", "some worker id")
 
         with_mock.mturk.get_qualification_score.assert_called_once_with(
             QualificationTypeId="some qtype id", WorkerId="some worker id"
         )
         assert score == fake_response["Qualification"]["IntegerValue"]
 
-    def test_get_qualification_score_raises_for_ungranted_qualification(
+    def test_current_qualification_score_raises_for_ungranted_qualification(
         self, with_mock
     ):
         with_mock.mturk.get_qualification_score = mock.Mock(
             side_effect=ClientError({}, "blah blah ... does not exist.")
         )
         with pytest.raises(WorkerLacksQualification):
-            with_mock.get_qualification_score("some qtype id", "some worker id")
+            with_mock.current_qualification_score("some qtype id", "some worker id")
 
-    def test_get_qualification_score_raises_for_revoked_qualification(self, with_mock):
+    def test_current_qualification_score_raises_for_revoked_qualification(
+        self, with_mock
+    ):
         with_mock.mturk.get_qualification_score = mock.Mock(
             side_effect=ClientError(
                 {}, "This operation can be called with a status of: Granted"
             )
         )
         with pytest.raises(RevokedQualification):
-            with_mock.get_qualification_score("some qtype id", "some worker id")
+            with_mock.current_qualification_score("some qtype id", "some worker id")
 
-    def test_get_current_qualification_score(self, with_mock):
+    def test_current_named_qualification_score(self, with_mock):
         worker_id = "some worker id"
         with_mock.get_qualification_type_by_name = mock.Mock(return_value={"id": "qid"})
-        with_mock.get_qualification_score = mock.Mock(return_value=1)
+        with_mock.current_qualification_score = mock.Mock(return_value=1)
 
-        result = with_mock.get_current_qualification_score("some name", worker_id)
+        result = with_mock.current_named_qualification_score("some name", worker_id)
 
         assert result["qtype"] == {"id": "qid"}
         assert result["score"] == 1
 
-    def test_get_current_qualification_score_worker_unscored(self, with_mock):
+    def test_current_named_qualification_score_worker_unscored(self, with_mock):
         worker_id = "some worker id"
         with_mock.get_qualification_type_by_name = mock.Mock(return_value={"id": "qid"})
-        with_mock.get_qualification_score = mock.Mock(
+        with_mock.current_qualification_score = mock.Mock(
             side_effect=WorkerLacksQualification()
         )
 
-        result = with_mock.get_current_qualification_score("some name", worker_id)
+        result = with_mock.current_named_qualification_score("some name", worker_id)
 
         assert result["qtype"] == {"id": "qid"}
         assert result["score"] is None
 
-    def test_get_current_qualification_score_is_none_for_revoked_qualifications(
+    def test_current_named_qualification_score_is_none_for_revoked_qualifications(
         self, with_mock
     ):
         worker_id = "some worker id"
         with_mock.get_qualification_type_by_name = mock.Mock(return_value={"id": "qid"})
-        with_mock.get_qualification_score = mock.Mock(
+        with_mock.current_qualification_score = mock.Mock(
             side_effect=RevokedQualification()
         )
 
-        result = with_mock.get_current_qualification_score("some name", worker_id)
+        result = with_mock.current_named_qualification_score("some name", worker_id)
 
         assert result["qtype"] == {"id": "qid"}
         assert result["score"] is None
 
-    def test_increment_qualification_score_for_worker_with_score(self, with_mock):
+    def test_increment_named_qualification_score_for_worker_with_score(self, with_mock):
         worker_id = "some worker id"
         fake_score = {"qtype": {"id": "qtype_id"}, "score": 2}
-        with_mock.get_current_qualification_score = mock.Mock(return_value=fake_score)
+        with_mock.current_named_qualification_score = mock.Mock(return_value=fake_score)
         with_mock.mturk.associate_qualification_with_worker.return_value = {}
 
-        result = with_mock.increment_qualification_score("some qual", worker_id)
+        result = with_mock.increment_named_qualification_score("some qual", worker_id)
 
         assert result["score"] == 3
         with_mock.mturk.associate_qualification_with_worker.assert_called_once_with(
@@ -1289,13 +1305,15 @@ class TestMTurkServiceWithFakeConnection(object):
             WorkerId="some worker id",
         )
 
-    def test_increment_qualification_score_for_worker_with_no_score(self, with_mock):
+    def test_increment_named_qualification_score_for_worker_with_no_score(
+        self, with_mock
+    ):
         worker_id = "some worker id"
         fake_score = {"qtype": {"id": "qtype_id"}, "score": None}
-        with_mock.get_current_qualification_score = mock.Mock(return_value=fake_score)
+        with_mock.current_named_qualification_score = mock.Mock(return_value=fake_score)
         with_mock.mturk.associate_qualification_with_worker.return_value = {}
 
-        result = with_mock.increment_qualification_score("some qual", worker_id)
+        result = with_mock.increment_named_qualification_score("some qual", worker_id)
 
         assert result["score"] == 1
         with_mock.mturk.associate_qualification_with_worker.assert_called_once_with(
@@ -1305,12 +1323,14 @@ class TestMTurkServiceWithFakeConnection(object):
             WorkerId="some worker id",
         )
 
-    def test_increment_qualification_score_nonexisting_qual_raises(self, with_mock):
+    def test_increment_named_qualification_score_nonexisting_qual_raises(
+        self, with_mock
+    ):
         worker_id = "some worker id"
         with_mock.get_qualification_type_by_name = mock.Mock(return_value=None)
 
         with pytest.raises(QualificationNotFoundException):
-            with_mock.increment_qualification_score("some qual", worker_id)
+            with_mock.increment_named_qualification_score("some qual", worker_id)
 
     def test_revoke_qualification(self, with_mock):
         with_mock.disassociate_qualification_from_worker = mock.Mock(
