@@ -3,209 +3,29 @@ on: [push]
 
 jobs:
 
-  check_mturk_changes:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 2
-
-      - name: check for mturk changes
-        id: check_files
-        run: |
-          echo "========== check paths of modified files =========="
-          git diff --name-only HEAD^ HEAD > files.txt
-          while IFS= read -r file
-          do
-            echo $file
-            if [[ $file == *mturk.py ]]; then
-              echo "This modified file is MTurk related."
-              echo "::set-output name=mturk_changed::true"
-              break
-            else
-              echo "This modified file is not MTurk related."
-              echo "::set-output name=mturk_changed::false"
-            fi
-          done < files.txt
 
   build:
     runs-on: ubuntu-latest
     environment: CI
-    needs: check_mturk_changes
-    strategy:
-      matrix:
-        python-version: [3.7, 3.8, 3.9]
-    services:
-      redis:
-        image: redis
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-      postgres:
-        image: postgres:12
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_USER: dallinger
-          POSTGRES_PASSWORD: dallinger
-          POSTGRES_DB: dallinger
     steps:
-      - name: Check out Dallinger repository
-        uses: actions/checkout@v2
-      - name: Install Ubuntu packages
-        run: sudo apt-get --yes install pandoc enchant snapd curl
-      - name: Chromedriver setup
-        uses: nanasess/setup-chromedriver@v1.0.5
-      - name: Install snap packages
-        run: sudo snap install --classic heroku
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '10'
-      - name: Install node packages
-        run: yarn --frozen-lockfile --ignore-engines
-      - name: Set up Ruby
-        uses: actions/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-      - name: Ruby dependencies
+
+      - name: Greet everyone
+        run: echo Hello, world!
+
+      - name: Install ssh-vault
         run: |
-          gem install danger
-          gem install danger-commit_lint
-          gem install chandler -v 0.7.0
-      - name: Yarn
-        run: yarn --frozen-lockfile --ignore-engines
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Cache pip
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-            ${{ runner.os }}-
-      - name: Python Installers
+          PACKAGING=amd64.deb
+          LATEST_VERSION=$(curl -w "%{redirect_url}" -o /dev/null -s https://bintray.com/nbari/ssh-vault/ssh-vault/_latestVersion | sed 's|.*/||')
+          curl -L -O "https://dl.bintray.com/nbari/ssh-vault/ssh-vault_${LATEST_VERSION}_${PACKAGING}"
+          dpkg -i ssh-vault*.deb
+
+      - name: Encrypt secrets
         run: |
-          pip install --upgrade pip wheel tox
-      - name: Before Tox
-        run: |
-          bundle exec danger
-      - name: Run Full Tox
+          echo -e "\nMTURK_WORKER_ID\n$MTURK_WORKER_ID\nAWS_ACCESS_KEY_ID\n$AWS_ACCESS_KEY_ID\nAWS_SECRET_ACCESS_KEY\n$AWS_SECRET_ACCESS_KEY\nPYPI_API_TOKEN\n$PYPI_API_TOKEN\nCHANDLER_GITHUB_API_TOKEN\n$CHANDLER_GITHUB_API_TOKEN" |ssh-vault -u silviot create /tmp/avault
+          cat /tmp/avault
         env:
-          DATABASE_URL: postgresql://dallinger:dallinger@localhost/dallinger
-          PORT: 5000
-          base_port: 5000
-          threads: 1
-          mturk_worker_id: ${{ secrets.MTURK_WORKER_ID }}
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          tox ${{ needs.check_mturk_changes.outputs.mturk_changed == 'true' && '-- --mturkfull' || ''}}
-          npm run test --coverage
-        if: matrix.python-version == 3.9
-      - name: Run Fast Tests Only
-        env:
-          DATABASE_URL: postgresql://dallinger:dallinger@localhost/dallinger
-          PORT: 5000
-          base_port: 5000
-          threads: 1
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          tox -e fast
-          npm run test --coverage
-        if: matrix.python-version != 3.9
-      - name: Set up deployment
-        env:
+          MTURK_WORKER_ID: ${{ secrets.MTURK_WORKER_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
           CHANDLER_GITHUB_API_TOKEN: ${{ secrets.CHANDLER_GITHUB_API_TOKEN }}
-        run: |
-          pandoc --from=markdown --to=rst --output=README.rst README.md
-          pip install build
-          python -m build --sdist --wheel .
-          chandler push --tag-prefix=v
-        if: matrix.python-version == 3.9 && contains(github.ref, '/tags/v')
-      - name: Deploy
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
-        if: matrix.python-version == 3.9 && contains(github.ref, '/tags/v')
-
-  docker:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx1-${{ hashFiles('Dockerfile') }}
-          restore-keys: |
-            ${{ runner.os }}-buildx1-
-      - name: Build dallingerimages/dallinger docker image
-        uses: docker/build-push-action@v2
-        with:
-          push: false
-          load: true
-          target: dallinger
-          tags: dallingerimages/dallinger:latest
-          cache-from: type=local,src=/tmp/.buildx-cache/base
-          cache-to: type=local,dest=/tmp/.buildx-cache/base
-      - name: Build dallingerimages/dallinger-bot docker image
-        uses: docker/build-push-action@v2
-        with:
-          push: false
-          load: true
-          target: dallinger-bot
-          tags: dallingerimages/dallinger-bot:latest
-          cache-from: type=local,src=/tmp/.buildx-cache/bot
-          cache-to: type=local,dest=/tmp/.buildx-cache/bot
-      - uses: actions/checkout@v2
-      - name: Make sure dallinger script entry point is working
-        run: docker run --rm dallingerimages/dallinger python3 -c "from pkg_resources import load_entry_point; load_entry_point('dallinger', 'console_scripts', 'dallinger_heroku_worker')"
-      - name: Make sure dallinger script entry point is working with dallinger source mounted as volume
-        run: docker run -v $PWD/dallinger:/dallinger/dallinger --rm dallingerimages/dallinger python3 -c "from pkg_resources import load_entry_point; load_entry_point('dallinger', 'console_scripts', 'dallinger_heroku_worker')"
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-            python-version: "3.9"
-      - name: Cache pip
-        uses: actions/cache@v2
-        with:
-            path: ~/.cache/pip
-            key: ${{ runner.os }}-pip-${{ hashFiles('*.txt') }}
-            restore-keys: |
-              ${{ runner.os }}-pip-
-              ${{ runner.os }}-
-      - name: Install Ubuntu packages
-        run: sudo apt-get --yes install pandoc enchant snapd curl
-      - name: Install and upgrade wheel, pip and tox
-        run: pip install --upgrade pip wheel tox
-      - name: Chromedriver setup
-        uses: nanasess/setup-chromedriver@v1.0.5
-      - name: Run docker tests
-        run: tox -e dockertests
-      - name: Show docker logs
-        if: ${{ always() }}
-        run: for container in $(docker ps -a -q); do echo "***** $(docker ps -a|grep $container) *******"; docker logs $container; done
-
-
-  pre-commit:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-    - uses: pre-commit/action@v2.0.0
